@@ -15,7 +15,7 @@ def carica_tariffario(percorso="TariffarioRegionePuglia.xlsx"):
     return pd.read_excel(percorso)
 
 # Funzione per generare il preventivo
-def genera_preventivo_da_dettato(testo: str, df: pd.DataFrame) -> str:
+def genera_preventivo_da_dettato(testo: str, df: pd.DataFrame, aggiungi_prelievo: bool = False) -> str:
     testo = testo.upper().replace("PAI", "")
     testo = testo.replace("-", ",")  # Consente separazione anche con trattino
     codici_input = re.split(r"[,]+", testo)
@@ -30,6 +30,10 @@ def genera_preventivo_da_dettato(testo: str, df: pd.DataFrame) -> str:
         f"- {row['Descrizione'].capitalize()} € {row['Tariffa-Puglia']}"
         for _, row in df_codici.iterrows()
     ]
+
+    if aggiungi_prelievo:
+        totale += 3.8
+        righe_dettaglio.append("- Prelievo ematico € 3.8")
 
     codici_trovati = df_codici["Regionale-Puglia"].astype(str).tolist()
     codici_non_trovati = [c for c in codici_validi if c not in codici_trovati]
@@ -102,10 +106,11 @@ st.markdown("Inserisci i codici regionali separati da virgola o trattino.\n"
 
 # Input manuale
 input_codici = st.text_input("Scrivi qui i codici regionali:")
+aggiungi_prelievo = st.checkbox("Aggiungi prelievo")
 
 if st.button("Genera Preventivo") or input_codici:
     try:
-        risultato_testo = genera_preventivo_da_dettato(input_codici, carica_tariffario())
+        risultato_testo = genera_preventivo_da_dettato(input_codici, carica_tariffario(), aggiungi_prelievo)
         st.text_area("Risultato del Preventivo:", risultato_testo, height=300, key="output_area")
 
         # Pulsante copia testo
