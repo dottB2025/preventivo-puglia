@@ -4,6 +4,14 @@ import re
 from datetime import datetime
 from fpdf import FPDF
 import base64
+import time
+
+# ✅ Deve essere il primo comando Streamlit
+st.set_page_config(page_title="Preventivo Sanitario Basilicata", layout="centered")
+
+# Mostra messaggio iniziale per attesa da risveglio
+with st.spinner("⏳ L'app si sta avviando, attendi qualche secondo se era in pausa..."):
+    time.sleep(1.5)
 
 # Carica il font localmente
 def carica_font():
@@ -11,7 +19,7 @@ def carica_font():
 
 # Caricamento del file Excel con caching
 @st.cache_data
-def carica_tariffario(percorso="TariffarioRegionePuglia.xlsx"):
+def carica_tariffario(percorso="TariffarioRegioneBasilicata.xlsx"):
     return pd.read_excel(percorso)
 
 # Funzione per generare il preventivo
@@ -20,14 +28,14 @@ def genera_preventivo_da_dettato(testo: str, df: pd.DataFrame, aggiungi_prelievo
     testo = testo.replace("-", ",")  # Consente separazione anche con trattino
     codici_input = re.split(r"[,]+", testo)
 
-    codici_validi = [c for c in codici_input if len(c) == 5 and c.isdigit()]
-    codici_non_validi = [c for c in codici_input if len(c) != 5 or not c.isdigit()]
+    codici_validi = [c for c in codici_input if len(c) == 7 and c.isdigit()]
+    codici_non_validi = [c for c in codici_input if len(c) != 7 or not c.isdigit()]
 
-    df_codici = df[df["Regionale-Puglia"].astype(str).isin(codici_validi)]
-    totale = df_codici["Tariffa-Puglia"].sum()
+    df_codici = df[df["Regionale-Basilicata"].astype(str).isin(codici_validi)]
+    totale = df_codici["Tariffa-Basilicata"].sum()
 
     righe_dettaglio = [
-        f"- {row['Descrizione'].capitalize()} € {row['Tariffa-Puglia']}"
+        f"- {row['Descrizione'].capitalize()} € {row['Tariffa-Basilicata']}"
         for _, row in df_codici.iterrows()
     ]
 
@@ -35,7 +43,7 @@ def genera_preventivo_da_dettato(testo: str, df: pd.DataFrame, aggiungi_prelievo
         totale += 3.8
         righe_dettaglio.append("- Prelievo ematico € 3.8")
 
-    codici_trovati = df_codici["Regionale-Puglia"].astype(str).tolist()
+    codici_trovati = df_codici["Regionale-Basilicata"].astype(str).tolist()
     codici_non_trovati = [c for c in codici_validi if c not in codici_trovati]
     codici_errati = codici_non_trovati + codici_non_validi
     if codici_errati:
@@ -95,14 +103,13 @@ def crea_pdf_unicode(contenuto: str) -> bytes:
             else:
                 pdf.multi_cell(0, 8, linea)
 
-    return pdf.output(dest='S').encode('latin1')
+    return pdf.output(dest='S')
 
-# Layout Streamlit
-st.set_page_config(page_title="Preventivo Sanitario Puglia", layout="centered")
-st.title("Preventivo Sanitario - Regione Puglia")
+# Titolo
+st.title("Preventivo Sanitario - Basilicata")
 
 st.markdown("Inserisci i codici regionali separati da virgola o trattino.\n" 
-            "Esempio: 12345,23456 - 34567")
+            "Esempio: 3001231,3001404 - 3001055")
 
 # Input manuale
 input_codici = st.text_input("Scrivi qui i codici regionali:")
